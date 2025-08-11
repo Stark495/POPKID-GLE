@@ -20,8 +20,8 @@ const jidCommand = async (m, Matrix) => {
         };
 
         const infoButton = {
-            buttonId: `${prefix}jidinfo ${jid}`,
-            buttonText: { displayText: "ℹ️ More Info" },
+            buttonId: `${prefix}uptime ${jid}`,
+            buttonText: { displayText: "ℹ️ BOT UPTIME" },
             type: 1
         };
 
