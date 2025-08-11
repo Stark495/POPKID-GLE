@@ -1,102 +1,69 @@
-// === Imports ===
 import moment from 'moment-timezone';
-import 'fs';
-import 'os';
-import baileys from '@whiskeysockets/baileys';
-const { generateWAMessageFromContent, proto } = baileys;
-import config from '../config.cjs';
 import axios from 'axios';
+import config from '../config.cjs';
 
-// === Uptime calculation ===
-const uptime = process.uptime();
-const days = Math.floor(uptime / 86400);
-const hours = Math.floor((uptime % 86400) / 3600);
-const minutes = Math.floor((uptime % 3600) / 60);
-const seconds = Math.floor(uptime % 60);
-const runMessage = `*${days} Day ${hours} Hour ${minutes} Min ${seconds} Sec*`;
-
-// === Date/time in Africa/Nairobi timezone ===
-const currentTime = moment().tz("Africa/Nairobi").format("HH:mm:ss");
-const currentDate = moment().tz("Africa/Nairobi").format("DD/MM/YYYY");
-
-// === Greeting based on time of day ===
-let greeting = "";
-if (currentTime < "05:00:00") {
-  greeting = "🌄Good Morning";
-} else if (currentTime < "11:00:00") {
-  greeting = "🌄Good Morning";
-} else if (currentTime < "15:00:00") {
-  greeting = "🌅Good Afternoon";
-} else if (currentTime < "19:00:00") {
-  greeting = "🌃Good Evening";
-} else {
-  greeting = "🌌Good Night";
-}
-
-// === Fancy font converter ===
-function toFancyFont(text, upperCase = false) {
-  const map = {
-    a: 'ᴀ', b: 'ʙ', c: 'ᴄ', d: 'ᴅ', e: 'ᴇ', f: 'ғ', g: 'ɢ',
-    h: 'ʜ', i: 'ɪ', j: 'ᴊ', k: 'ᴋ', l: 'ʟ', m: 'ᴍ', n: 'ɴ',
-    o: 'ᴏ', p: 'ᴘ', q: 'ǫ', r: 'ʀ', s: 's', t: 'ᴛ', u: 'ᴜ',
-    v: 'ᴠ', w: 'ᴡ', x: 'x', y: 'ʏ', z: 'ᴢ'
-  };
-  const formatted = (upperCase ? text.toUpperCase() : text.toLowerCase())
-    .split("")
-    .map(c => map[c] || c)
-    .join("");
-  return formatted;
-}
-
-// === Fetch menu image with retry ===
+// === Fetch menu image ===
 async function fetchMenuImage() {
   const url = "https://files.catbox.moe/w2mkty.jpg";
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const resp = await axios.get(url, { responseType: "arraybuffer" });
-      return Buffer.from(resp.data, "binary");
-    } catch (err) {
-      if (err.response?.status === 429 && attempt < 2) {
-        console.log("Rate limited—retrying in 2s...");
-        await new Promise(r => setTimeout(r, 2000));
-      } else {
-        console.error("Failed to fetch image:", err);
-        return null;
-      }
-    }
+  try {
+    const resp = await axios.get(url, { responseType: "arraybuffer" });
+    return Buffer.from(resp.data, "binary");
+  } catch {
+    return null;
   }
-  return null;
 }
 
-// === Menu handler function ===
-const menu = async (message, client) => {
+const menu = async (m, sock) => {
   try {
+    // ✅ Get message text safely
+    const msgText =
+      m.body ||
+      m.message?.conversation ||
+      m.message?.extendedTextMessage?.text ||
+      m.message?.imageMessage?.caption ||
+      "";
+
     const prefix = config.PREFIX;
-    const cmd = message.body.startsWith(prefix)
-      ? message.body.slice(prefix.length).split(" ")[0].toLowerCase()
+    const cmd = msgText.startsWith(prefix)
+      ? msgText.slice(prefix.length).split(" ")[0].toLowerCase()
       : "";
-    const mode = config.MODE === "public" ? "public" : "private";
 
-    const basicMenuCmds = ["list", "popkidmenu", "button"];
-    const subMenus = [
-      "channel-menu", "converter-menu", "ai-menu", "tools-menu",
-      "group-menu", "search-menu", "main-menu", "owner-menu", "stalk-menu"
-    ];
+    // ✅ Only respond to "popkidmenu"
+    if (cmd !== "popkidmenu") return;
 
-    const imageBuffer = await fetchMenuImage();
+    // React loading
+    await sock.sendMessage(m.from, { react: { text: '⏳', key: m.key } });
 
-    // === Main Menu ===
-    if (basicMenuCmds.includes(cmd)) {
-      const template = `
+    // === Uptime ===
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
+
+    // === Date & Time ===
+    const now = moment().tz("Africa/Nairobi");
+    const currentDate = now.format("DD/MM/YYYY");
+    const currentTime = now.format("HH:mm:ss");
+    const hour = parseInt(now.format("HH"), 10);
+
+    let greeting = "🌌 Good Night";
+    if (hour < 5) greeting = "🌄 Good Morning";
+    else if (hour < 11) greeting = "🌄 Good Morning";
+    else if (hour < 15) greeting = "🌅 Good Afternoon";
+    else if (hour < 19) greeting = "🌃 Good Evening";
+
+    // === Menu Text ===
+    const template = `
 ┌─❖
 │ POPKID GLE
 └┬❖
 ┌┤ ${greeting}
 │└────────┈⳹
-│🕵️ Username: *${message.pushName}*
+│🕵️ Username: *${m.pushName}*
 │📅 Date: *${currentDate}*
 │⏰ Time: *${currentTime}*
-│⭐ Uptime: ${runMessage}
+│⭐ Uptime: *${days} Day ${hours} Hour ${minutes} Min ${seconds} Sec*
 └─────────────┈⳹
 
 *📋 MENU OPTIONS*
@@ -111,132 +78,40 @@ const menu = async (message, client) => {
 9. 📜REACTIONS MENU
 10. 📥MAIN MENU
 
-_click any button above to access that section_
-
 > ✆︎Powered by popkid
-      `.trim();
+`.trim();
 
-      const buttons = [
-        { buttonId: prefix + "menu", buttonText: { displayText: "Menu |commanders" }, type: 1 },
-        { buttonId: prefix + "popkid hello can l ask please", buttonText: { displayText: "NjabuloJb |AI model" }, type: 1 },
-        { buttonId: prefix + "channel-menu", buttonText: { displayText: "Follow family |INFORMATION|" }, type: 1 }
-      ];
+    // === Template Buttons (latest Baileys format) ===
+    const templateButtons = [
+      { index: 1, quickReplyButton: { displayText: "📜 Main Menu", id: `${prefix}main-menu` } },
+      { index: 2, quickReplyButton: { displayText: "👨‍👨‍👦 Group Menu", id: `${prefix}group-menu` } },
+      { index: 3, quickReplyButton: { displayText: "🤖 AI Menu", id: `${prefix}ai-menu` } }
+    ];
 
-      const context = {
-        mentionedJid: [message.sender],
-        forwardingScore: 999,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: "120363420342566562@newsletter",
-          newsletterName: "╭••➤®popkid",
-          serverMessageId: 0x8f
-        }
-      };
+    const imageBuffer = await fetchMenuImage();
 
-      const msgOptions = {
-        viewOnce: true,
-        buttons,
-        contextInfo: context
-      };
-
-      if (imageBuffer) {
-        await client.sendMessage(message.from, {
-          image: imageBuffer,
-          caption: template,
-          ...msgOptions
-        }, {
-          quoted: {
-            key: {
-              fromMe: false,
-              participant: "0@s.whatsapp.net",
-              remoteJid: "status@broadcast"
-            },
-            message: {
-              contactMessage: {
-                displayName: "✆︎popkid verified",
-                vcard: "BEGIN:VCARD\nVERSION:3.0\nN:Njabulo-Jb;BOT;;;\nFN:Njabulo-Jb\nitem1.TEL;waid=254700000000:+254 700 000000\nitem1.X-ABLabel:Bot\nEND:VCARD"
-              }
-            }
-          }
-        });
-      } else {
-        await client.sendMessage(message.from, {
-          text: template,
-          ...msgOptions
-        }, { quoted: message });
-      }
-
-      // Send voice note after the menu
-      await client.sendMessage(message.from, {
-        audio: { url: "https://files.catbox.moe/mflouf.mp3" },
-        mimetype: "audio/mp4",
-        ptt: true
-      }, {
-        quoted: {
-          key: {
-            fromMe: false,
-            participant: "0@s.whatsapp.net",
-            remoteJid: "status@broadcast"
-          },
-          message: {
-            contactMessage: {
-              displayName: "✆︎popkid verified",
-              vcard: "BEGIN:VCARD\nVERSION:3.0\nN:Njabulo-Jb;BOT;;;\nFN:Njabulo-Jb\nitem1.TEL;waid=254700000000:+254 700 000000\nitem1.X-ABLabel:Bot\nEND:VCARD"
-            }
-          }
-        }
-      });
+    if (imageBuffer) {
+      await sock.sendMessage(m.from, {
+        image: imageBuffer,
+        caption: template,
+        footer: "╭••➤®popkid",
+        templateButtons
+      }, { quoted: m });
+    } else {
+      await sock.sendMessage(m.from, {
+        text: template,
+        footer: "╭••➤®popkid",
+        templateButtons
+      }, { quoted: m });
     }
 
-    // === Sub-menus like channel-menu ===
-    if (subMenus.includes(cmd)) {
-      if (cmd === "channel-menu") {
-        const text = `
-📅 Date: ${currentDate}
-⏰ Time: ${currentTime}
-⚙️ Prefix: ${prefix}
-🌐 Mode: ${mode}
-
-*Follow Join family update*
-        `.trim();
-
-        await client.sendMessage(message.from, {
-          text,
-          contextInfo: {
-            mentionedJid: [message.sender],
-            forwardingScore: 999,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterJid: "120363420342566562@newsletter",
-              newsletterName: "╭••➤®popkid",
-              serverMessageId: 0x8f
-            }
-          }
-        }, {
-          quoted: {
-            key: {
-              fromMe: false,
-              participant: "0@s.whatsapp.net",
-              remoteJid: "status@broadcast"
-            },
-            message: {
-              contactMessage: {
-                displayName: "✆︎popkid verified",
-                vcard: "BEGIN:VCARD\nVERSION:3.0\nN:Njabulo-Jb;BOT;;;\nFN:Njabulo-Jb\nitem1.TEL;waid=254700000000:+254 700 000000\nitem1.X-ABLabel:Bot\nEND:VCARD"
-              }
-            }
-          }
-        });
-      }
-    }
+    // React success
+    await sock.sendMessage(m.from, { react: { text: '✅', key: m.key } });
 
   } catch (err) {
-    console.error("❌ Menu error:", err);
-    await client.sendMessage(message.from, {
-      text: `•\n• *popkid gle* encountered an error! Error: ${err.message || "Unknown"} 😡\n•`
-    }, {
-      quoted: message
-    });
+    console.error("Menu error:", err);
+    await sock.sendMessage(m.from, { text: `❌ Error showing menu: ${err.message}` }, { quoted: m });
+    await sock.sendMessage(m.from, { react: { text: '❌', key: m.key } });
   }
 };
 
