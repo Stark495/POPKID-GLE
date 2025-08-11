@@ -10,12 +10,35 @@ const anticallcommand = async (m, Matrix) => {
     : '';
   const text = m.body.slice(prefix.length + cmd.length).trim();
 
-  if (cmd === 'anticall') {
+  // === Step 1: Show buttons if just "anticall" is typed ===
+  if (cmd === 'anticall' && !text) {
+    if (!isCreator)
+      return m.reply(`*⛔ ACCESS DENIED!*\n\nOnly the *bot owner* can use this command.`);
+
+    return await Matrix.sendMessage(m.from, {
+      text: `⚙️ *Anti-Call Control*\n\n💡 Choose an option below to toggle Anti-Call:`,
+      buttons: [
+        { buttonId: `${prefix}anticall on`, buttonText: { displayText: '🚫 Enable Anti-Call' }, type: 1 },
+        { buttonId: `${prefix}anticall off`, buttonText: { displayText: '✅ Disable Anti-Call' }, type: 1 }
+      ],
+      headerType: 1,
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterName: "POPKID-XTECH ⚙️",
+          newsletterJid: "120363420342566562@newsletter"
+        }
+      }
+    }, { quoted: m });
+  }
+
+  // === Step 2: Handle toggle logic ===
+  if (cmd === 'anticall' && text) {
     if (!isCreator)
       return m.reply(`*⛔ ACCESS DENIED!*\n\nOnly the *bot owner* can use this command.`);
 
     let responseMessage = '';
-    let footer = `💡 Use ${prefix}anticall on/off to toggle`;
 
     if (text === 'on') {
       config.REJECT_CALL = true;
@@ -40,49 +63,24 @@ const anticallcommand = async (m, Matrix) => {
     } else {
       responseMessage = `
 ╭─❍「 📛 INVALID USAGE 」❍
-│ Please use:
-│ ➤ ${prefix}anticall on
-│ ➤ ${prefix}anticall off
+│ Please choose an option using the buttons.
 │
 │  🚀 Powered by *POPKID-XTECH*
 ╰─────────────────────⧘
       `.trim();
     }
 
-    try {
-      await Matrix.sendMessage(
-        m.from,
-        {
-          text: responseMessage,
-          contextInfo: {
-            forwardingScore: 999,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterName: "POPKID-XTECH ⚙️",
-              newsletterJid: "120363420342566562@newsletter"
-            }
-          }
-        },
-        { quoted: m }
-      );
-    } catch (error) {
-      console.error('❗ Error in anticall command:', error);
-      await Matrix.sendMessage(
-        m.from,
-        {
-          text: `⚠️ *An unexpected error occurred while processing the command!*`,
-          contextInfo: {
-            forwardingScore: 999,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterName: "POPKID-XTECH ⚠️",
-              newsletterJid: "120363420342566562@newsletter"
-            }
-          }
-        },
-        { quoted: m }
-      );
-    }
+    return await Matrix.sendMessage(m.from, {
+      text: responseMessage,
+      contextInfo: {
+        forwardingScore: 999,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterName: "POPKID-XTECH ⚙️",
+          newsletterJid: "120363420342566562@newsletter"
+        }
+      }
+    }, { quoted: m });
   }
 };
 
