@@ -124,7 +124,7 @@ const tourl = async (m, bot) => {
         text: "✅ File uploaded successfully!\nTap below to check bot ping instantly.",
         footer: "Popkid Network",
         buttons: [
-          { buttonId: "ping_now", buttonText: { displayText: "📡 Ping" }, type: 1 }
+          { buttonId: "ping", buttonText: { displayText: "📡 Ping" }, type: 1 }
         ],
         headerType: 1
       },
