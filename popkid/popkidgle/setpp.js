@@ -3,71 +3,73 @@ import Jimp from 'jimp';
 import config from '../config.cjs';
 
 const setProfilePicture = async (m, sock) => {
-  const botNumber = await sock.decodeJid(sock.user.id);
-  const prefix = config.PREFIX;
-  const cmd = m.body.startsWith(prefix)
-    ? m.body.slice(prefix.length).split(' ')[0].toLowerCase()
-    : '';
+    const botNumber = await sock.decodeJid(sock.user.id);
+    const prefix = config.PREFIX;
+    const cmd = m.body.startsWith(prefix)
+        ? m.body.slice(prefix.length).trim().split(/ +/).shift().toLowerCase()
+        : '';
 
-  if (cmd !== "setpp") return;
+    // Only trigger on "setpp"
+    if (cmd !== "setpp") return;
 
-  // Optional: Restrict to bot only
-  if (m.sender !== botNumber) {
-    return sock.sendMessage(m.from, { text: "❌ This command can only be used by the bot itself." }, { quoted: m });
-  }
-
-  // Check replied image
-  if (!m.quoted?.message?.imageMessage) {
-    return sock.sendMessage(m.from, { text: "⚠️ Please *reply to an image* to set as profile picture." }, { quoted: m });
-  }
-
-  // React loading
-  await sock.sendMessage(m.from, { react: { text: '⏳', key: m.key } });
-
-  try {
-    // Download image
-    const media = await downloadMediaMessage(m.quoted, 'buffer');
-    if (!media) throw new Error("Image download failed");
-
-    // Read image
-    let image = await Jimp.read(media);
-
-    // Make square
-    if (image.bitmap.width !== image.bitmap.height) {
-      const size = Math.max(image.bitmap.width, image.bitmap.height);
-      const squareImage = new Jimp(size, size, 0x000000FF);
-      squareImage.composite(image, (size - image.bitmap.width) / 2, (size - image.bitmap.height) / 2);
-      image = squareImage;
+    // Restrict to bot only
+    if (m.sender !== botNumber) {
+        return sock.sendMessage(m.from, { 
+            text: "❌ *Only the bot can run this command.*" 
+        }, { quoted: m });
     }
 
-    // Resize
-    image.resize(640, 640);
-    const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+    // Check if replied message is image
+    if (!m.quoted?.message?.imageMessage) {
+        return sock.sendMessage(m.from, { 
+            text: "⚠️ *Reply to an image to set as profile picture.*" 
+        }, { quoted: m });
+    }
 
-    // Set profile picture
-    await sock.updateProfilePicture(botNumber, buffer);
+    // Show loading reaction
+    await sock.sendMessage(m.from, { react: { text: '⏳', key: m.key } });
 
-    // Success
-    await sock.sendMessage(m.from, { react: { text: '✅', key: m.key } });
-    return sock.sendMessage(m.from, {
-      text: "✅ *Profile Picture Updated successfully!*",
-      contextInfo: {
-        mentionedJid: [m.sender],
-        forwardingScore: 999,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: '120363420342566562@newsletter',
-          newsletterName: "popkid",
-          serverMessageId: 143
+    try {
+        // Download media
+        const media = await downloadMediaMessage(m.quoted, 'buffer');
+        if (!media) throw new Error("Image download failed");
+
+        // Process image
+        let image = await Jimp.read(media);
+
+        // Make it square
+        if (image.bitmap.width !== image.bitmap.height) {
+            const size = Math.max(image.bitmap.width, image.bitmap.height);
+            const squareImage = new Jimp(size, size, 0x000000FF);
+            squareImage.composite(image, (size - image.bitmap.width) / 2, (size - image.bitmap.height) / 2);
+            image = squareImage;
         }
-      }
-    }, { quoted: m });
 
-  } catch (err) {
-    console.error("Error setting profile picture:", err);
-    await sock.sendMessage(m.from, { react: { text: '❌', key: m.key } });
-    return sock.sendMessage(m.from, { text: "❌ An error occurred while updating the profile picture." }, { quoted: m });
-  }
+        // Resize for WhatsApp
+        image.resize(640, 640);
+        const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+
+        // Set profile picture
+        await sock.updateProfilePicture(botNumber, buffer);
+
+        // Success reaction & message
+        await sock.sendMessage(m.from, { react: { text: '✅', key: m.key } });
+        return sock.sendMessage(m.from, {
+            text: "✅ *Profile Picture Updated Successfully!*",
+            contextInfo: {
+                mentionedJid: [m.sender],
+                forwardingScore: 999,
+                isForwarded: true
+            }
+        }, { quoted: m });
+
+    } catch (err) {
+        console.error("Error setting profile picture:", err);
+        await sock.sendMessage(m.from, { react: { text: '❌', key: m.key } });
+        return sock.sendMessage(m.from, { 
+            text: "❌ *Error while updating profile picture.*" 
+        }, { quoted: m });
+    }
 };
 
 export default setProfilePicture;
