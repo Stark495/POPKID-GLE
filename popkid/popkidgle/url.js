@@ -39,6 +39,18 @@ const tourl = async (m, bot) => {
   if (!prefixMatch) return;
 
   const cmd = prefixMatch[2].toLowerCase();
+
+  // Handle ping button press directly here
+  if (m.message?.buttonsResponseMessage) {
+    const buttonId = m.message.buttonsResponseMessage.selectedButtonId;
+    if (buttonId === "ping_now") {
+      const start = Date.now();
+      await bot.sendMessage(m.key.remoteJid, { text: "📡 Pinging..." });
+      const latency = Date.now() - start;
+      return bot.sendMessage(m.key.remoteJid, { text: `🏓 Pong! Response time: *${latency}ms*` });
+    }
+  }
+
   if (!validCommands.includes(cmd)) return;
 
   if (
@@ -105,29 +117,19 @@ const tourl = async (m, bot) => {
       );
     }
 
-    // Send Ping Button
-    try {
-      await bot.sendMessage(
-        m.from,
-        {
-          text: "✅ File uploaded successfully!\nTap below to check bot ping instantly.",
-          footer: "Popkid Network",
-          templateButtons: [
-            {
-              index: 1,
-              quickReplyButton: {
-                displayText: "📡 Ping",
-                id: "ping_now" // Custom ID for instant ping
-              }
-            }
-          ]
-        },
-        { quoted: m }
-      );
-    } catch (btnErr) {
-      console.error("Button send error:", btnErr);
-      m.reply("⚠ Button could not be displayed, but your file was uploaded successfully.");
-    }
+    // Send Ping Button (self-contained)
+    await bot.sendMessage(
+      m.from,
+      {
+        text: "✅ File uploaded successfully!\nTap below to check bot ping instantly.",
+        footer: "Popkid Network",
+        buttons: [
+          { buttonId: "ping_now", buttonText: { displayText: "📡 Ping" }, type: 1 }
+        ],
+        headerType: 1
+      },
+      { quoted: m }
+    );
 
   } catch (err) {
     console.error('Upload error:', err);
@@ -136,13 +138,3 @@ const tourl = async (m, bot) => {
 };
 
 export default tourl;
-
-// ===== LISTEN FOR BUTTON TAP =====
-export async function handleButtonReply(m, bot) {
-  if (m?.message?.buttonsResponseMessage?.selectedButtonId === "ping_now") {
-    const start = Date.now();
-    await bot.sendMessage(m.from, { text: "📡 Pinging..." });
-    const latency = Date.now() - start;
-    await bot.sendMessage(m.from, { text: `🏓 Pong! Response time: *${latency}ms*` });
-  }
-}
