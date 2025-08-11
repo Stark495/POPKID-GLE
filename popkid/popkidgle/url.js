@@ -1,31 +1,64 @@
+import fetch from 'node-fetch';
+import FormData from 'form-data';
+import { fileTypeFromBuffer } from 'file-type';
+
+const MAX_FILE_SIZE_MB = 200;
+
+// ===== Upload to Catbox =====
+async function uploadMedia(buffer) {
+  try {
+    const { ext } = await fileTypeFromBuffer(buffer) || { ext: 'bin' };
+    const form = new FormData();
+    form.append('fileToUpload', buffer, `file.${ext}`);
+    form.append('reqtype', 'fileupload');
+
+    const response = await fetch('https://catbox.moe/user/api.php', {
+      method: 'POST',
+      body: form,
+    });
+
+    if (!response.ok) throw new Error(`Upload failed: ${response.statusText}`);
+    return await response.text();
+  } catch (error) {
+    console.error('Upload error:', error);
+    throw new Error('❌ Upload failed. Try again later.');
+  }
+}
+
+function getMediaType(mtype) {
+  switch (mtype) {
+    case 'imageMessage': return 'image';
+    case 'videoMessage': return 'video';
+    case 'audioMessage': return 'audio';
+    default: return null;
+  }
+}
+
+// ===== Main Command =====
 const ping2 = async (m, bot) => {
   const validCommands = ['url', 'geturl', 'upload', 'u'];
   const prefixMatch = m.body?.trim().match(/^([\\/!#.\-])(\w+)/);
-  const prefix = prefixMatch ? prefixMatch[1] : '!'; // fallback prefix
 
-  // If the 📡 Ping button is pressed
+  // ===== Button Press Detection =====
   if (m.message?.buttonsResponseMessage) {
     const buttonId = m.message.buttonsResponseMessage.selectedButtonId;
     if (buttonId === "ping_now") {
-      // Simulate the user sending a ping command
-      m.body = `${prefix}ping`;
-      return bot.ev.emit("messages.upsert", {
-        messages: [m],
-        type: "notify"
-      });
+      const start = Date.now();
+      await bot.sendMessage(m.key.remoteJid, { text: "📡 Pinging..." });
+      const latency = Date.now() - start;
+      return bot.sendMessage(m.key.remoteJid, { text: `🏓 Pong! Response time: *${latency}ms*` });
     }
   }
 
+  // If no prefix or invalid command
   if (!prefixMatch) return;
   const cmd = prefixMatch[2].toLowerCase();
   if (!validCommands.includes(cmd)) return;
 
-  if (
-    !m.quoted ||
-    !['imageMessage', 'videoMessage', 'audioMessage'].includes(m.quoted.mtype)
-  ) {
+  // ===== Media Validation =====
+  if (!m.quoted || !['imageMessage', 'videoMessage', 'audioMessage'].includes(m.quoted.mtype)) {
     return m.reply(
-      `💀 *Invalid Input!*\nReply to an image, video, or audio.\n\n📥 Usage:\n\`${prefix}${cmd}\``
+      `💀 *Invalid Input!*\nReply to an image, video, or audio.\n\n📥 Usage:\n\`${prefixMatch[1]}${cmd}\``
     );
   }
 
@@ -34,14 +67,13 @@ const ping2 = async (m, bot) => {
     if (!media) throw new Error('Media download failed.');
 
     const fileSizeMB = media.length / (1024 * 1024);
-    if (fileSizeMB > 200) {
-      return m.reply(`⛔ *Upload Blocked!*\nFile size > 200MB`);
+    if (fileSizeMB > MAX_FILE_SIZE_MB) {
+      return m.reply(`⛔ *Upload Blocked!*\nFile size > ${MAX_FILE_SIZE_MB}MB`);
     }
 
     const mediaUrl = await uploadMedia(media);
     const mediaType = getMediaType(m.quoted.mtype);
-    const mediaTypeName =
-      mediaType.charAt(0).toUpperCase() + mediaType.slice(1);
+    const mediaTypeName = mediaType.charAt(0).toUpperCase() + mediaType.slice(1);
 
     const contextInfo = {
       forwardingScore: 100,
@@ -63,26 +95,18 @@ const ping2 = async (m, bot) => {
 🔗 Popkid XMD Hacker Network
 `.trim();
 
-    // Send uploaded media info
+    // ===== Send Uploaded Media Info =====
     if (mediaType === 'audio') {
-      await bot.sendMessage(
-        m.from,
-        { text: caption, contextInfo },
-        { quoted: m }
-      );
+      await bot.sendMessage(m.from, { text: caption, contextInfo }, { quoted: m });
     } else {
       await bot.sendMessage(
         m.from,
-        {
-          [mediaType]: { url: mediaUrl },
-          caption,
-          contextInfo,
-        },
+        { [mediaType]: { url: mediaUrl }, caption, contextInfo },
         { quoted: m }
       );
     }
 
-    // Send Ping Button
+    // ===== Send Ping Button =====
     await bot.sendMessage(
       m.from,
       {
@@ -101,3 +125,5 @@ const ping2 = async (m, bot) => {
     return m.reply(`🚨 *SYSTEM ERROR:*\nTry again later.`);
   }
 };
+
+export default ping2;
