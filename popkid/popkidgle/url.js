@@ -1,56 +1,23 @@
-import fetch from 'node-fetch';
-import FormData from 'form-data';
-import { fileTypeFromBuffer } from 'file-type';
-
-const MAX_FILE_SIZE_MB = 200;
-
-async function uploadMedia(buffer) {
-  try {
-    const { ext } = await fileTypeFromBuffer(buffer);
-    const form = new FormData();
-    form.append('fileToUpload', buffer, `file.${ext}`);
-    form.append('reqtype', 'fileupload');
-
-    const response = await fetch('https://catbox.moe/user/api.php', {
-      method: 'POST',
-      body: form,
-    });
-
-    if (!response.ok) throw new Error(`Upload failed: ${response.statusText}`);
-    return await response.text();
-  } catch (error) {
-    console.error('Upload error:', error);
-    throw new Error('❌ Upload failed. Try again later.');
-  }
-}
-
-function getMediaType(mtype) {
-  switch (mtype) {
-    case 'imageMessage': return 'image';
-    case 'videoMessage': return 'video';
-    case 'audioMessage': return 'audio';
-    default: return null;
-  }
-}
-
-const tourl = async (m, bot) => {
+const ping2 = async (m, bot) => {
   const validCommands = ['url', 'geturl', 'upload', 'u'];
   const prefixMatch = m.body?.trim().match(/^([\\/!#.\-])(\w+)/);
-  if (!prefixMatch) return;
+  const prefix = prefixMatch ? prefixMatch[1] : '!'; // fallback prefix
 
-  const cmd = prefixMatch[2].toLowerCase();
-
-  // Handle ping button press directly here
+  // If the 📡 Ping button is pressed
   if (m.message?.buttonsResponseMessage) {
     const buttonId = m.message.buttonsResponseMessage.selectedButtonId;
     if (buttonId === "ping_now") {
-      const start = Date.now();
-      await bot.sendMessage(m.key.remoteJid, { text: "📡 Pinging..." });
-      const latency = Date.now() - start;
-      return bot.sendMessage(m.key.remoteJid, { text: `🏓 Pong! Response time: *${latency}ms*` });
+      // Simulate the user sending a ping command
+      m.body = `${prefix}ping`;
+      return bot.ev.emit("messages.upsert", {
+        messages: [m],
+        type: "notify"
+      });
     }
   }
 
+  if (!prefixMatch) return;
+  const cmd = prefixMatch[2].toLowerCase();
   if (!validCommands.includes(cmd)) return;
 
   if (
@@ -58,7 +25,7 @@ const tourl = async (m, bot) => {
     !['imageMessage', 'videoMessage', 'audioMessage'].includes(m.quoted.mtype)
   ) {
     return m.reply(
-      `💀 *Invalid Input!*\nReply to an image, video, or audio.\n\n📥 Usage:\n\`${prefixMatch[1]}${cmd}\``
+      `💀 *Invalid Input!*\nReply to an image, video, or audio.\n\n📥 Usage:\n\`${prefix}${cmd}\``
     );
   }
 
@@ -67,10 +34,8 @@ const tourl = async (m, bot) => {
     if (!media) throw new Error('Media download failed.');
 
     const fileSizeMB = media.length / (1024 * 1024);
-    if (fileSizeMB > MAX_FILE_SIZE_MB) {
-      return m.reply(
-        `⛔ *Upload Blocked!*\nFile size > ${MAX_FILE_SIZE_MB}MB`
-      );
+    if (fileSizeMB > 200) {
+      return m.reply(`⛔ *Upload Blocked!*\nFile size > 200MB`);
     }
 
     const mediaUrl = await uploadMedia(media);
@@ -117,14 +82,14 @@ const tourl = async (m, bot) => {
       );
     }
 
-    // Send Ping Button (self-contained)
+    // Send Ping Button
     await bot.sendMessage(
       m.from,
       {
         text: "✅ File uploaded successfully!\nTap below to check bot ping instantly.",
         footer: "Popkid Network",
         buttons: [
-          { buttonId: "ping", buttonText: { displayText: "📡 Ping" }, type: 1 }
+          { buttonId: "ping_now", buttonText: { displayText: "📡 Ping" }, type: 1 }
         ],
         headerType: 1
       },
@@ -136,5 +101,3 @@ const tourl = async (m, bot) => {
     return m.reply(`🚨 *SYSTEM ERROR:*\nTry again later.`);
   }
 };
-
-export default tourl;
