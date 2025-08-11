@@ -9,7 +9,7 @@ const alwaysonlineCommand = async (m, Matrix) => {
 
   if (cmd !== 'alwaysonline') return;
 
-  // Helper function to send message with buttons
+  // popkid gle v2
   const sendButtons = async (txt) => {
     const buttons = [
       { buttonId: `${prefix}alwaysonline on`, buttonText: { displayText: '🟢 Enable' }, type: 1 },
