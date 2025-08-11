@@ -97,34 +97,22 @@ const menu = async (m, sock) => {
 ╰────────────────────`
   };
 
-  // i made the category for two days
-  if (
-    isNumberReply &&
-    m.quoted?.key.fromMe &&
-    m.quoted?.message?.imageMessage?.caption?.includes("REPLY WITH A NUMBER TO SEE A CATEGORY")
-  ) {
+  // If reply with number (OLD method still works)
+  if (isNumberReply && m.quoted?.key.fromMe && m.quoted?.message?.imageMessage?.caption?.includes("SELECT A CATEGORY BELOW")) {
     if (categoryMenus[cmd]) {
-      return await sock.sendMessage(
-        m.from,
-        {
-          text: categoryMenus[cmd],
-          contextInfo: newsletterContext,
-        },
-        { quoted: m }
-      );
+      return await sock.sendMessage(m.from, {
+        text: categoryMenus[cmd],
+        contextInfo: newsletterContext,
+      }, { quoted: m });
     } else {
-      return await sock.sendMessage(
-        m.from,
-        {
-          text: "❌ Invalid number. Please reply with a number from 1 to 9.",
-          contextInfo: newsletterContext,
-        },
-        { quoted: m }
-      );
+      return await sock.sendMessage(m.from, {
+        text: "❌ Invalid number. Please select a valid category.",
+        contextInfo: newsletterContext,
+      }, { quoted: m });
     }
   }
 
-  // popkid menu2🖥️
+  // Main menu
   if (cmd === "menu2") {
     const start = new Date().getTime();
     await m.React('⚡');
@@ -157,28 +145,27 @@ const menu = async (m, sock) => {
 ┃ 🔐 PREFIX: ${prefix}
 ╚════════════════════╝
 
-💬 *REPLY WITH A NUMBER TO SEE A CATEGORY:*
-
-1️⃣ ┋ MAIN & BOT COMMANDS  
-2️⃣ ┋ OWNER COMMANDS  
-3️⃣ ┋ AI & CHAT  
-4️⃣ ┋ SEARCH & TOOLS  
-5️⃣ ┋ CONVERTERS & UTILITIES  
-6️⃣ ┋ GROUP CONTROL  
-7️⃣ ┋ FUN, GAMES & REACTIONS  
-8️⃣ ┋ AUDIO FX & MUSIC  
-9️⃣ ┋ HENTAI (18+)
-
-━━━━━━━━━━━━━━
-⚡ *POPᴋID SYSTEM* ⚡
-━━━━━━━━━━━━━━`.trim();
+💬 *SELECT A CATEGORY BELOW:*`;
 
     await sock.sendMessage(m.from, {
       image: { url: profilePictureUrl },
       caption: mainMenu,
-      contextInfo: newsletterContext,
+      buttons: [
+        { buttonId: `${prefix}cat1`, buttonText: { displayText: '1️⃣ MAIN & BOT COMMANDS' }, type: 1 },
+        { buttonId: `${prefix}cat2`, buttonText: { displayText: '2️⃣ OWNER COMMANDS' }, type: 1 },
+        { buttonId: `${prefix}cat3`, buttonText: { displayText: '3️⃣ AI & CHAT' }, type: 1 },
+        { buttonId: `${prefix}cat4`, buttonText: { displayText: '4️⃣ SEARCH & TOOLS' }, type: 1 },
+        { buttonId: `${prefix}cat5`, buttonText: { displayText: '5️⃣ CONVERTERS & UTILITIES' }, type: 1 },
+        { buttonId: `${prefix}cat6`, buttonText: { displayText: '6️⃣ GROUP CONTROL' }, type: 1 },
+        { buttonId: `${prefix}cat7`, buttonText: { displayText: '7️⃣ FUN, GAMES & REACTIONS' }, type: 1 },
+        { buttonId: `${prefix}cat8`, buttonText: { displayText: '8️⃣ AUDIO FX & MUSIC' }, type: 1 },
+        { buttonId: `${prefix}cat9`, buttonText: { displayText: '9️⃣ HENTAI (18+)' }, type: 1 }
+      ],
+      headerType: 4,
+      contextInfo: newsletterContext
     }, { quoted: m });
 
+    // Send random audio
     const songUrls = [
       'https://files.catbox.moe/2b33jv.mp3',
       'https://files.catbox.moe/0cbqfa.mp3',
@@ -193,6 +180,17 @@ const menu = async (m, sock) => {
       ptt: false,
       contextInfo: newsletterContext
     }, { quoted: m });
+  }
+
+  // Handle category button presses
+  if (/^cat[1-9]$/.test(cmd)) {
+    const num = cmd.replace('cat', '');
+    if (categoryMenus[num]) {
+      return await sock.sendMessage(m.from, {
+        text: categoryMenus[num],
+        contextInfo: newsletterContext
+      }, { quoted: m });
+    }
   }
 };
 
