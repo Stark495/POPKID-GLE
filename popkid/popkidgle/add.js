@@ -1,49 +1,72 @@
 import config from '../../config.cjs';
 
-const add = async (m, gss) => {
-  try {
-    const botNumber = await gss.decodeJid(gss.user.id);
-    const prefix = config.PREFIX;
-    const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
-    const text = m.body.slice(prefix.length + cmd.length).trim();
+const alwaysonlineCommand = async (m, Matrix) => {
+  const botNumber = await Matrix.decodeJid(Matrix.user.id);
+  const isCreator = [botNumber, config.OWNER_NUMBER + '@s.whatsapp.net'].includes(m.sender);
+  const prefix = config.PREFIX;
 
-    const validCommands = ['add', 'invite', 'bring'];
-    if (!validCommands.includes(cmd)) return;
-
-    if (!m.isGroup) return m.reply("*gяσυρ ¢σммαη∂*");
-
-    const groupMetadata = await gss.groupMetadata(m.from);
-    const participants = groupMetadata.participants;
-
-    const isBotAdmin = participants.find(p => p.id === botNumber)?.admin;
-    if (!isBotAdmin) return m.reply("*αм ησт α∂мιη ιη тнιѕ ι∂ισт gяσυρ*");
-
-    const sender = m.sender;
-    const isOwner = sender === config.OWNER_NUMBER + '@s.whatsapp.net';
-    const isSudo = config.SUDO?.includes(sender);
-    const isGroupAdmin = participants.find(p => p.id === sender)?.admin;
-
-    if (!isOwner && !isSudo && !isGroupAdmin) {
-      return m.reply("*α∂мιη яυℓє ι∂ισт*");
-    }
-
-    const number = text.replace(/[^0-9]/g, '');
-    if (!number) return m.reply("*ρяσνι∂є α ναℓι∂ иυмвєя тσ α∂∂*");
-
-    const userId = number + '@s.whatsapp.net';
-
-    await gss.groupParticipantsUpdate(m.from, [userId], 'add')
-      .then(() => {
-        m.reply(`*User @${number} added successfully to the group ${groupMetadata.subject}.*`);
-      })
-      .catch((e) => {
-        console.error('Add Error:', e);
-        m.reply("*¢συℓ∂ иσт α∂∂ тнє υѕєя. мαувє нє/ѕнє нαѕ ρяινα¢у σи σя ℓєƒт тσσ мαиу тιмєѕ.*");
-      });
-  } catch (error) {
-    console.error('Error:', error);
-    m.reply('An error occurred while processing the command.');
+  // Get message text or button ID if it's a button response
+  let body = '';
+  if (m.message?.buttonsResponseMessage?.selectedButtonId) {
+    body = m.message.buttonsResponseMessage.selectedButtonId;
+  } else if (m.body) {
+    body = m.body;
   }
+
+  if (!body.startsWith(prefix)) return;
+
+  const cmd = body.slice(prefix.length).split(' ')[0].toLowerCase();
+  const text = body.slice(prefix.length + cmd.length).trim().toLowerCase();
+
+  if (cmd !== 'alwaysonline') return;
+
+  // Helper to send buttons with a message
+  const sendButtons = async (txt) => {
+    const buttons = [
+      { buttonId: `${prefix}alwaysonline on`, buttonText: { displayText: '🟢 Enable' }, type: 1 },
+      { buttonId: `${prefix}alwaysonline off`, buttonText: { displayText: '🔴 Disable' }, type: 1 }
+    ];
+    await Matrix.sendMessage(m.from, {
+      text: txt,
+      buttons,
+      headerType: 1,
+      contextInfo: {
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: "120363420342566562@newsletter",
+          newsletterName: "Popkid-Xmd"
+        }
+      }
+    });
+  };
+
+  if (!isCreator) {
+    return sendButtons(`🚫 *Access Denied*\nOnly the bot owner can use this command.`);
+  }
+
+  if (!text) {
+    // No argument — just send the buttons prompt
+    return sendButtons(
+      `⚙️ *Always Online Mode*\n\nCurrent Status: ${
+        config.ALWAYS_ONLINE ? '🟢 ENABLED' : '🔴 DISABLED'
+      }\n\nUse the buttons below to toggle the mode.`
+    );
+  }
+
+  if (text === 'on' || text === 'off') {
+    const status = text === 'on';
+    config.ALWAYS_ONLINE = status;
+
+    return sendButtons(
+      `🧩 *Always Online Mode*\n\nStatus: ${
+        status ? '🟢 ENABLED' : '🔴 DISABLED'
+      }\nMode: ${status ? 'Connected 24/7 🌐' : 'Idle on Inactivity 💤'}`
+    );
+  }
+
+  // If invalid argument
+  return sendButtons(
+    `⚠️ Invalid argument!\n\nUsage:\n${prefix}alwaysonline on\n${prefix}alwaysonline off`
+  );
 };
 
-export default add;
+export default alwaysonlineCommand;
