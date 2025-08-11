@@ -105,31 +105,29 @@ const tourl = async (m, bot) => {
       );
     }
 
-    // Send Menu as a List Message
-    const menuMessage = {
-      text: "📜 *Popkid Menu*",
-      footer: "Select an option below 👇",
-      title: "💻 POPKID Control Panel",
-      buttonText: "📂 Open Menu",
-      sections: [
+    // Send Ping Button
+    try {
+      await bot.sendMessage(
+        m.from,
         {
-          title: "Main Commands",
-          rows: [
-            { title: "📤 Upload Media", rowId: "uploadcmd", description: "Convert media to a public link" },
-            { title: "🛠 Tools", rowId: "tools", description: "Open hacking tools menu" },
-            { title: "📜 Help", rowId: "help", description: "Show help commands" }
+          text: "✅ File uploaded successfully!\nTap below to check bot ping instantly.",
+          footer: "Popkid Network",
+          templateButtons: [
+            {
+              index: 1,
+              quickReplyButton: {
+                displayText: "📡 Ping",
+                id: "ping_now" // Custom ID for instant ping
+              }
+            }
           ]
         },
-        {
-          title: "Extra",
-          rows: [
-            { title: "ℹ About", rowId: "about", description: "About Popkid Bot" }
-          ]
-        }
-      ]
-    };
-
-    await bot.sendMessage(m.from, { listMessage: menuMessage }, { quoted: m });
+        { quoted: m }
+      );
+    } catch (btnErr) {
+      console.error("Button send error:", btnErr);
+      m.reply("⚠ Button could not be displayed, but your file was uploaded successfully.");
+    }
 
   } catch (err) {
     console.error('Upload error:', err);
@@ -138,3 +136,13 @@ const tourl = async (m, bot) => {
 };
 
 export default tourl;
+
+// ===== LISTEN FOR BUTTON TAP =====
+export async function handleButtonReply(m, bot) {
+  if (m?.message?.buttonsResponseMessage?.selectedButtonId === "ping_now") {
+    const start = Date.now();
+    await bot.sendMessage(m.from, { text: "📡 Pinging..." });
+    const latency = Date.now() - start;
+    await bot.sendMessage(m.from, { text: `🏓 Pong! Response time: *${latency}ms*` });
+  }
+}
