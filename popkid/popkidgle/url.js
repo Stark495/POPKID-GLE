@@ -86,6 +86,7 @@ const tourl = async (m, bot) => {
 🔗 Popkid XMD Hacker Network
 `.trim();
 
+    // Send uploaded media info
     if (mediaType === 'audio') {
       await bot.sendMessage(
         m.from,
@@ -103,6 +104,33 @@ const tourl = async (m, bot) => {
         { quoted: m }
       );
     }
+
+    // Send Menu as a List Message
+    const menuMessage = {
+      text: "📜 *Popkid Menu*",
+      footer: "Select an option below 👇",
+      title: "💻 POPKID Control Panel",
+      buttonText: "📂 Open Menu",
+      sections: [
+        {
+          title: "Main Commands",
+          rows: [
+            { title: "📤 Upload Media", rowId: "uploadcmd", description: "Convert media to a public link" },
+            { title: "🛠 Tools", rowId: "tools", description: "Open hacking tools menu" },
+            { title: "📜 Help", rowId: "help", description: "Show help commands" }
+          ]
+        },
+        {
+          title: "Extra",
+          rows: [
+            { title: "ℹ About", rowId: "about", description: "About Popkid Bot" }
+          ]
+        }
+      ]
+    };
+
+    await bot.sendMessage(m.from, { listMessage: menuMessage }, { quoted: m });
+
   } catch (err) {
     console.error('Upload error:', err);
     return m.reply(`🚨 *SYSTEM ERROR:*\nTry again later.`);
