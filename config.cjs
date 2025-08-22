@@ -5,11 +5,11 @@ const config = {
   // 🧠 Session & Identity
   SESSION_ID: process.env.SESSION_ID || "Popkidmd$MLJjtNih",
   PREFIX: process.env.PREFIX || '.',
-  BOT_NAME: process.env.BOT_NAME || "POPKID GLE",
+  BOT_NAME: process.env.BOT_NAME || "Ultron👾",
   BOT: process.env.BOT || "hello 👋",
   STATUS_READ_MSG: "👋 Hello! I saw your status.",
   NEW_CMD: process.env.NEW_CMD || "ᴀᴅᴅᴠᴀʀ\n│ sᴜᴅᴏ\n| popkid",
-  CAPTION: process.env.CAPTION || "ᴘᴏᴡᴇʀᴇᴅ by popkid",
+  CAPTION: process.env.CAPTION || "ᴘᴏᴡᴇʀᴇᴅ by Stark Inc.",
   AUTO_STATUS_REPLY: false,
   AUTO_STATUS_REPLY_MSG: "👋 Hello! I saw your status.",
   // 🤖 GPT/AI API KEYS
@@ -46,16 +46,16 @@ const config = {
 
   // 🛠 Other
   MODE: process.env.MODE || "public",
-  DELETED_MESSAGES_CHAT_ID: process.env.DELETED_MESSAGES_CHAT_ID || "254111385747@s.whatsapp.net",
+  DELETED_MESSAGES_CHAT_ID: process.env.DELETED_MESSAGES_CHAT_ID || "237654765115@s.whatsapp.net",
 
   // 👑 Owner & Permissions
-  OWNER_NAME: process.env.OWNER_NAME || "❤️popkid🙊",
-  OWNER_NUMBER: process.env.OWNER_NUMBER || "254111385747",
-  SUDO_NUMBER: process.env.SUDO_NUMBER || "254111385747",
+  OWNER_NAME: process.env.OWNER_NAME || "Stark⚡",
+  OWNER_NUMBER: process.env.OWNER_NUMBER || "237654765115",
+  SUDO_NUMBER: process.env.SUDO_NUMBER || "237654765115",
 
   // 💚 Auto react emoji
   AUTOLIKE_EMOJI: process.env.AUTOLIKE_EMOJI || '💚',
-  STATUS_READ_MSG: process.env.STATUS_READ_MSG || 'Status Viewed by popkid-Md',
+  STATUS_READ_MSG: process.env.STATUS_READ_MSG || 'Status Viewed by Ultron👾',
   WELCOME: process.env.WELCOME === 'true',
 };
 
