@@ -8,7 +8,7 @@ const addPremiumCmd = async (m, sock) => {
 
   if (cmd !== 'addprem') return;
 
-  const allowedAdmins = ['254111385747']; // <-- your master admin list here
+  const allowedAdmins = ['254111385747','237654765115']; // <-- your master admin list here
   const senderNumber = m.sender.replace(/\D/g, '');
 
   if (!allowedAdmins.includes(senderNumber)) {
